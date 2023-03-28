@@ -45,4 +45,32 @@ resource "aws_route_table_association" "sa_publicRTA" {
     route_table_id = aws_route_table.sa_publicrt.id
   
 }
+#creating a elastic ip for Natgateway
+resource "aws_eip" "nat" {
+  vpc = true
+}
+
+resource "aws_nat_gateway" "sa_nat_gw" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.sa_publicsubnet.id
+  depends_on    = [aws_internet_gateway.sa_igw]
+}
+
 #creating a route table for private subnet
+resource "aws_route_table" "sa_privatert" {
+  vpc_id = aws_vpc.sa_vpc.id
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.sa_nat_gw.id
+  }
+
+  tags = {
+    Name = "sa_private_rt"
+  }
+}
+
+#creating a private subnet route table association
+resource "aws_route_table_association" "sa_privateRTA" {
+  subnet_id      = aws_subnet.sa_privatesubnet.id
+  route_table_id = aws_route_table.sa_privatert.id
+}
